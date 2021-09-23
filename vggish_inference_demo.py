@@ -84,15 +84,16 @@ FLAGS = flags.FLAGS
 
 
 import pickle
+
 def main(_):
   info = None
   post = '.mp4'
   if FLAGS.dataset == 'VATEX':
-    wav_path = '/work3/yangbang/VATEX/all_wavs'
+    wav_path = '/home/yangbang/new_VC_data/VATEX/all_wavs'
     # vid2id = pickle.load(open('/home/yangbang/VC_data/VATEX/info_corpus.pkl', 'rb'))['info']['vid2id']
     # info = {v[:11]: k for k,v in vid2id.items()}
     info = None
-    base_path = '/work3/yangbang/VATEX/'
+    base_path = '/home/yangbang/new_VC_data/VATEX/'
   elif FLAGS.dataset == 'MSVD':
     #vid2id = pickle.load(open('/home/yangbang/VC_data/Youtube2Text/info_corpus.pkl', 'rb'))['info']['vid2id']
     #info = vid2id
@@ -105,10 +106,12 @@ def main(_):
         _id, vid = line.split()
         info['video%d'%int(vid[3:])] = _id
   else:
-    wav_path = '/home/yangbang/VC_data/MSRVTT/all_wavs'
-    base_path = '/home/yangbang/VideoCaptioning/MSRVTT/'
+    wav_path = '/home/yangbang/new_VC_data/MSRVTT/all_wavs'
+    base_path = '/home/yangbang/new_VC_data/MSRVTT/'
 
   db = h5py.File('./%s_%s.hdf5' % (FLAGS.dataset, FLAGS.n_frames), 'a')
+  db2 = h5py.File("./audio_vggish_audioset_fixed60.hdf5", 'r')
+  import numpy as np
 
   with tf.Graph().as_default(), tf.Session() as sess:
     # Define the model in inference mode, load the checkpoint, and
@@ -122,6 +125,8 @@ def main(_):
 
     for wav_file in os.listdir(wav_path):
         vid = wav_file.split('.')[0]
+        if FLAGS.dataset == 'MSRVTT' and int(vid[5:]) >= 10000:
+          continue
         if vid in db.keys():
           continue
         examples_batch = vggish_input.wavfile_to_examples2(os.path.join(wav_path, wav_file),  n_frames=int(FLAGS.n_frames), info=info, base_path=base_path, post=post)
@@ -130,6 +135,10 @@ def main(_):
         [embedding_batch] = sess.run([embedding_tensor],
                                      feed_dict={features_tensor: examples_batch})
         db[vid] = embedding_batch
+        a = embedding_batch
+        b = np.asarray(db2[vid])
+        print(a.min(), a.max(), a.mean(), a.std())
+        print(b.min(), b.max(), b.mean(), b.std())
   db.close()
 
 
