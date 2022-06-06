@@ -15,9 +15,6 @@
 
 from __future__ import print_function
 
-import numpy as np
-import six
-import soundfile
 import tensorflow.compat.v1 as tf
 
 import vggish_input
@@ -27,6 +24,7 @@ import os
 import h5py
 import Constants
 import argparse
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--checkpoint', type=str, default='vggish_model.ckpt', help='Path to the VGGish checkpoint file.')
@@ -66,7 +64,7 @@ def main():
     embedding_tensor = sess.graph.get_tensor_by_name(
         vggish_params.OUTPUT_TENSOR_NAME)
 
-    for wav_file in os.listdir(wav_path):
+    for wav_file in tqdm(os.listdir(wav_path)):
         vid = wav_file.split('.')[0]
         
         if args.dataset == 'MSRVTT' and int(vid[5:]) >= 10000:
@@ -87,8 +85,6 @@ def main():
         [embedding_batch] = sess.run([embedding_tensor],
                                      feed_dict={features_tensor: examples_batch})
         db[vid] = embedding_batch
-        a = embedding_batch
-        print(a.min(), a.max(), a.mean(), a.std())
 
   db.close()
 

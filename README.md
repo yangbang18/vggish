@@ -24,7 +24,7 @@ This repository is forked from [Google Research](https://github.com/tensorflow/m
   ```
 4. Extract features
   ```
-    python vggish_inference_demo.py --dataset MSRVTT --n_frames 60 --video_postfix .mp4
+    python extract_features.py --dataset MSRVTT --n_frames 60 --video_postfix .mp4
   ```
 
 
