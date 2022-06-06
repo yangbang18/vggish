@@ -13,37 +13,6 @@
 # limitations under the License.
 # ==============================================================================
 
-r"""A simple demonstration of running VGGish in inference mode.
-
-This is intended as a toy example that demonstrates how the various building
-blocks (feature extraction, model definition and loading, postprocessing) work
-together in an inference context.
-
-A WAV file (assumed to contain signed 16-bit PCM samples) is read in, converted
-into log mel spectrogram examples, fed into VGGish, the raw embedding output is
-whitened and quantized, and the postprocessed embeddings are optionally written
-in a SequenceExample to a TFRecord file (using the same format as the embedding
-features released in AudioSet).
-
-Usage:
-  # Run a WAV file through the model and print the embeddings. The model
-  # checkpoint is loaded from vggish_model.ckpt and the PCA parameters are
-  # loaded from vggish_pca_params.npz in the current directory.
-  $ python vggish_inference_demo.py --wav_file /path/to/a/wav/file
-
-  # Run a WAV file through the model and also write the embeddings to
-  # a TFRecord file. The model checkpoint and PCA parameters are explicitly
-  # passed in as well.
-  $ python vggish_inference_demo.py --wav_file /path/to/a/wav/file \
-                                    --tfrecord_file /path/to/tfrecord/file \
-                                    --checkpoint /path/to/model/checkpoint \
-                                    --pca_params /path/to/pca/params
-
-  # Run a built-in input (a sine wav) through the model and print the
-  # embeddings. Associated model files are read from the current directory.
-  $ python vggish_inference_demo.py
-"""
-
 from __future__ import print_function
 
 import numpy as np
@@ -53,71 +22,45 @@ import tensorflow.compat.v1 as tf
 
 import vggish_input
 import vggish_params
-import vggish_postprocess
 import vggish_slim
 import os
 import h5py
+import Constants
+import argparse
 
-flags = tf.app.flags
+parser = argparse.ArgumentParser()
+parser.add_argument('--checkpoint', type=str, default='vggish_model.ckpt', help='Path to the VGGish checkpoint file.')
+parser.add_argument('--n_frames', type=int, default=Constants.n_total_frames, 
+    help='the number of features per wav file. 0 means extrating non-overlapping features',
+    choices=[0, Constants.n_total_frames])
+parser.add_argument('--dataset', type=str, default='MSRVTT')
+parser.add_argument('--video_postfix', type=str, default='.mp4')
+args = parser.parse_args()
 
-flags.DEFINE_string(
-    'checkpoint', 'vggish_model.ckpt',
-    'Path to the VGGish checkpoint file.')
-
-flags.DEFINE_string(
-    'pca_params', 'vggish_pca_params.npz',
-    'Path to the VGGish PCA parameters file.')
-
-flags.DEFINE_string(
-    'n_frames', '0',
-    '.')
-
-flags.DEFINE_string(
-    'tfrecord_file', None,
-    'Path to a TFRecord file where embeddings will be written.')
-
-flags.DEFINE_string(
-    'dataset', 'MSRVTT',
-    'Path to the VGGish PCA parameters file.')
-
-FLAGS = flags.FLAGS
-
-
-import pickle
-
-def main(_):
-  info = None
-  post = '.mp4'
-  if FLAGS.dataset == 'VATEX':
-    wav_path = '/home/yangbang/new_VC_data/VATEX/all_wavs'
-    # vid2id = pickle.load(open('/home/yangbang/VC_data/VATEX/info_corpus.pkl', 'rb'))['info']['vid2id']
-    # info = {v[:11]: k for k,v in vid2id.items()}
-    info = None
-    base_path = '/home/yangbang/new_VC_data/VATEX/'
-  elif FLAGS.dataset == 'MSVD':
-    #vid2id = pickle.load(open('/home/yangbang/VC_data/Youtube2Text/info_corpus.pkl', 'rb'))['info']['vid2id']
-    #info = vid2id
-    wav_path = "/work2/yangbang/MSVD/clip_audio/"
-    base_path = "/work2/yangbang/MSVD/"
-    post = '.avi'
-    info = {}
-    lines = open("/work2/yangbang/Youtube2Text/youtube_mapping.txt", 'r').read().strip().split('\n')
-    for line in lines:
-        _id, vid = line.split()
-        info['video%d'%int(vid[3:])] = _id
+def main():
+  base_path = os.path.join(Constants.base_data_path, args.dataset)
+  wav_path = os.path.join(base_path, Constants.wav_folder_name)
+  save_path = os.path.join(base_path, 'feats')
+  os.makedirs(save_path, exist_ok=True)
+  if args.n_frames == 0:
+    save_name = 'audio_vggish_audioset_overlap0.hdf5'
   else:
-    wav_path = '/home/yangbang/new_VC_data/MSRVTT/all_wavs'
-    base_path = '/home/yangbang/new_VC_data/MSRVTT/'
+    save_name = 'audio_vggish_audioset_fixed%d.hdf5' % args.n_frames
+  save_path = os.path.join(save_path, save_name)
 
-  db = h5py.File('./%s_%s.hdf5' % (FLAGS.dataset, FLAGS.n_frames), 'a')
-  db2 = h5py.File("./audio_vggish_audioset_fixed60.hdf5", 'r')
-  import numpy as np
+  print('- Loading wav files from', wav_path)
+  print('- Saving features to', save_path)
+  
+  if args.dataset == 'MSVD':
+    args.video_postfix = '.avi'
+
+  db = h5py.File(save_path, 'a')
 
   with tf.Graph().as_default(), tf.Session() as sess:
     # Define the model in inference mode, load the checkpoint, and
     # locate input and output tensors.
     vggish_slim.define_vggish_slim(training=False)
-    vggish_slim.load_vggish_slim_checkpoint(sess, FLAGS.checkpoint)
+    vggish_slim.load_vggish_slim_checkpoint(sess, args.checkpoint)
     features_tensor = sess.graph.get_tensor_by_name(
         vggish_params.INPUT_TENSOR_NAME)
     embedding_tensor = sess.graph.get_tensor_by_name(
@@ -125,22 +68,30 @@ def main(_):
 
     for wav_file in os.listdir(wav_path):
         vid = wav_file.split('.')[0]
-        if FLAGS.dataset == 'MSRVTT' and int(vid[5:]) >= 10000:
+        
+        if args.dataset == 'MSRVTT' and int(vid[5:]) >= 10000:
+          # this is because MSR-VTT (2017) has 13000 videos, we use MSR-VTT (2016).
           continue
+
         if vid in db.keys():
           continue
-        examples_batch = vggish_input.wavfile_to_examples2(os.path.join(wav_path, wav_file),  n_frames=int(FLAGS.n_frames), info=info, base_path=base_path, post=post)
+
+        examples_batch = vggish_input.wavfile_to_examples2(
+          os.path.join(wav_path, wav_file),  
+          base_path=base_path, 
+          n_frames=int(args.n_frames), 
+          video_postfix=args.video_postfix
+        )
 
         # Run inference and postprocessing.
         [embedding_batch] = sess.run([embedding_tensor],
                                      feed_dict={features_tensor: examples_batch})
         db[vid] = embedding_batch
         a = embedding_batch
-        b = np.asarray(db2[vid])
         print(a.min(), a.max(), a.mean(), a.std())
-        print(b.min(), b.max(), b.mean(), b.std())
+
   db.close()
 
 
 if __name__ == '__main__':
-  tf.app.run()
+  main()

@@ -20,6 +20,8 @@ import resampy
 
 import mel_features
 import vggish_params
+import Constants
+
 
 try:
   import soundfile as sf
@@ -106,16 +108,17 @@ def wavfile_to_examples(wav_file):
 
 import cv2
 import os
-def wavfile_to_examples2(wav_file, base_path='/home/yangbang/VideoCaptioning/MSRVTT/', folder_name=['all_videos', 'all_frames'], n_frames=0, post='.mp4', info=None):
+def wavfile_to_examples2(wav_file, base_path, n_frames=0, video_postfix='.mp4'):
     vid = os.path.basename(wav_file).split('.')[0]
 
-    video_file = os.path.join(base_path, folder_name[0], (vid if info is None else info[vid]) + post)
-    #video_file = os.path.join(base_path, folder_name[0], vid + post)
+    video_file = os.path.join(base_path, Constants.video_folder_name, vid + video_postfix)
     video = cv2.VideoCapture(video_file)
     fps = video.get(cv2.CAP_PROP_FPS)
+    num_frames2 = video.get(cv2.CAP_PROP_FRAME_COUNT)
     video.release()
-    num_frames = len(os.listdir(os.path.join(base_path, folder_name[1], vid)))
-    print(vid, fps, num_frames, video_file)
+    num_frames = len(os.listdir(os.path.join(base_path, Constants.frame_folder_name, vid)))
+    print(vid, fps, num_frames, video_file, num_frames2)
+    assert num_frames2 == num_frames
     
     wav_data, sr = wav_read(wav_file)
     assert wav_data.dtype == np.int16, 'Bad sample type: %r' % wav_data.dtype

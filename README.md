@@ -1,4 +1,34 @@
 # VGGish
+This repository is forked from [Google Research](https://github.com/tensorflow/models/tree/master/research/audioset/vggish) and is used to extract 128-D audio features for the given video files.
+
+1. Install Python packages and download two data files
+2. Follow the structure below to place your files 
+  ```
+  └── $base_data_path
+      ├── $dataset
+      │   ├── all_videos
+      │   │   ├── video0.mp4 (or .avi)
+      │   │   └── ...
+      │   ├── info_corpus.pkl
+      │   └── refs.pkl
+      └── $another_dataset
+          ├── all_videos
+          │   ├── video0.mp4 (or .avi)
+          │   └── ...
+          ├── info_corpus.pkl
+          └── refs.pkl
+  ```
+3. Extract wav files from video files
+  ```
+    python video2wav.py --dataset MSRVTT
+  ```
+4. Extract features
+  ```
+    python vggish_inference_demo.py --dataset MSRVTT --n_frames 60 --video_postfix .mp4
+  ```
+
+
+=========== original README below =============
 
 The initial AudioSet release included 128-dimensional embeddings of each
 AudioSet segment produced from a VGG-like audio classification model that was

@@ -39,17 +39,6 @@ def frame(data, window_length, hop_length, info = [], n_frames=0):
     extracted.
   """
   if n_frames:
-    #print(window_length)
-    def check(begin, end, nf):
-      if begin < 0:
-        intervel = -begin
-        begin += intervel
-        end += intervel
-      if end > nf:
-        intervel = end - nf
-        end -= intervel
-        begin -= intervel
-      return begin, end
     fps, num_frames = info
     samples = []
     bound = [int(i) for i in np.linspace(0, num_frames, n_frames+1)]
@@ -68,8 +57,7 @@ def frame(data, window_length, hop_length, info = [], n_frames=0):
           repeat_sample = data[-1, :][np.newaxis, :].repeat(remain, axis=0)
         tmp_sample = np.concatenate([repeat_sample, tmp_sample], axis=0)
         print(ti, window_length, length, remain, data.shape[0])
-      #begin, end = check(begin, end, data.shape[0])
-      #samples.append(data[begin:end, :])
+
       samples.append(tmp_sample)
     return np.stack(samples, axis=0)
 
