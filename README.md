@@ -2,7 +2,7 @@
 This repository is forked from [Google Research](https://github.com/tensorflow/models/tree/master/research/audioset/vggish) and is used to extract 128-D audio features for the given video files.
 
 1. Install Python packages and download two data files
-2. Follow the structure below to place your files 
+2. Follow the structure below to place your files (remember to modify `base_data_path` in `Constants.py`)
   ```
   └── $base_data_path
       ├── $dataset
@@ -28,7 +28,7 @@ This repository is forked from [Google Research](https://github.com/tensorflow/m
   ```
 
 
-=========== original README below =============
+# Original README
 
 The initial AudioSet release included 128-dimensional embeddings of each
 AudioSet segment produced from a VGG-like audio classification model that was

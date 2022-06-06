@@ -111,18 +111,19 @@ import os
 def wavfile_to_examples2(wav_file, base_path, n_frames=0, video_postfix='.mp4'):
     vid = os.path.basename(wav_file).split('.')[0]
 
-    video_file = os.path.join(base_path, Constants.video_folder_name, vid + video_postfix)
-    video = cv2.VideoCapture(video_file)
-    fps = video.get(cv2.CAP_PROP_FPS)
-    num_frames2 = video.get(cv2.CAP_PROP_FRAME_COUNT)
-    video.release()
-    num_frames = len(os.listdir(os.path.join(base_path, Constants.frame_folder_name, vid)))
-    print(vid, fps, num_frames, video_file, num_frames2)
-    assert num_frames2 == num_frames
+    if n_frames == 0:
+      info = []
+    else:
+      video_file = os.path.join(base_path, Constants.video_folder_name, vid + video_postfix)
+      video = cv2.VideoCapture(video_file)
+      fps = video.get(cv2.CAP_PROP_FPS)
+      video.release()
+      num_frames = len(os.listdir(os.path.join(base_path, Constants.frame_folder_name, vid)))
+
+      info = [fps, num_frames]
     
     wav_data, sr = wav_read(wav_file)
     assert wav_data.dtype == np.int16, 'Bad sample type: %r' % wav_data.dtype
     samples = wav_data / 32768.0  # Convert to [-1.0, +1.0]
     
-    #print(vid, samples.shape)
-    return waveform_to_examples(samples, sr, [fps, num_frames], n_frames)
+    return waveform_to_examples(samples, sr, info, n_frames)

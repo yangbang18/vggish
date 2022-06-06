@@ -39,12 +39,14 @@ args = parser.parse_args()
 
 def main():
   base_path = os.path.join(Constants.base_data_path, args.dataset)
+  video_path = os.path.join(base_path, Constants.video_folder_name)
   wav_path = os.path.join(base_path, Constants.wav_folder_name)
   save_path = os.path.join(base_path, 'feats')
   os.makedirs(save_path, exist_ok=True)
   if args.n_frames == 0:
     save_name = 'audio_vggish_audioset_overlap0.hdf5'
   else:
+    print('- Laoding video info (fps, # frames) from', video_path)
     save_name = 'audio_vggish_audioset_fixed%d.hdf5' % args.n_frames
   save_path = os.path.join(save_path, save_name)
 
@@ -78,7 +80,7 @@ def main():
 
         examples_batch = vggish_input.wavfile_to_examples2(
           os.path.join(wav_path, wav_file),  
-          base_path=base_path, 
+          video_path, 
           n_frames=int(args.n_frames), 
           video_postfix=args.video_postfix
         )

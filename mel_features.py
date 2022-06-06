@@ -56,7 +56,7 @@ def frame(data, window_length, hop_length, info = [], n_frames=0):
         else:
           repeat_sample = data[-1, :][np.newaxis, :].repeat(remain, axis=0)
         tmp_sample = np.concatenate([repeat_sample, tmp_sample], axis=0)
-        print(ti, window_length, length, remain, data.shape[0])
+        # print(ti, window_length, length, remain, data.shape[0])
 
       samples.append(tmp_sample)
     return np.stack(samples, axis=0)
