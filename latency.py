@@ -25,8 +25,6 @@ import time
 import Constants
 import argparse
 from tqdm import tqdm
-import numpy as np
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--checkpoint', type=str, default='vggish_model.ckpt', help='Path to the VGGish checkpoint file.')
@@ -35,30 +33,6 @@ parser.add_argument('--dataset', type=str, default='MSRVTT')
 parser.add_argument('--video_postfix', type=str, default='.mp4')
 parser.add_argument('--n_latency_samples', type=int, default=1000)
 args = parser.parse_args()
-
-def count_params():
-    # 定义总参数量、可训练参数量及非可训练参数量变量
-    Total_params = 0 
-    Trainable_params = 0
-    NonTrainable_params = 0
-
-    # 遍历tf.global_variables()返回的全局变量列表
-    for var in tf.global_variables():
-        shape = var.shape # 获取每个变量的shape，其类型为'tensorflow.python.framework.tensor_shape.TensorShape'
-        array = np.asarray([dim.value for dim in shape]) # 转换为numpy数组，方便后续计算
-        mulValue = np.prod(array) # 使用numpy prod接口计算数组所有元素之积
-
-        Total_params += mulValue # 总参数量
-        if var.trainable:
-            Trainable_params += mulValue # 可训练参数量
-        else:
-            NonTrainable_params += mulValue # 非可训练参数量
-
-    print(f'Total params: {Total_params}')
-    print(f'Trainable params: {Trainable_params}')
-    print(f'Non-trainable params: {NonTrainable_params}')
-    return Total_params
-    
 
 def main():
   base_path = os.path.join(Constants.base_data_path, args.dataset)
@@ -83,8 +57,6 @@ def main():
     files = os.listdir(wav_path)[:args.n_latency_samples]
     total_time = 0
 
-    params = count_params()
-
     for wav_file in tqdm(files):
         vid = wav_file.split('.')[0]
         
@@ -107,7 +79,7 @@ def main():
     print(f'- Average latency: {total_time / len(files)}')
       
     with open('latency.txt', 'a') as f:
-      f.write(f'{params}\t{len(files)}\t{total_time}\t{total_time / len(files)}\n')
+      f.write(f'{len(files)}\t{total_time}\t{total_time / len(files)}\n')
 
 if __name__ == '__main__':
   main()
