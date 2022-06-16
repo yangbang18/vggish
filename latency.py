@@ -34,6 +34,18 @@ parser.add_argument('--video_postfix', type=str, default='.mp4')
 parser.add_argument('--n_latency_samples', type=int, default=1000)
 args = parser.parse_args()
 
+def count_params():
+    total_parameters = 0
+    for variable in tf.trainable_variables():
+        variable_parameters = 1
+        for dim in variable.get_shape():
+            variable_parameters *= dim.value
+        total_parameters += variable_parameters
+
+    print("Total number of trainable parameters: %d" % total_parameters)
+    return total_parameters
+
+
 def main():
   base_path = os.path.join(Constants.base_data_path, args.dataset)
   wav_path = os.path.join(base_path, Constants.wav_folder_name)
@@ -57,6 +69,8 @@ def main():
     files = os.listdir(wav_path)[:args.n_latency_samples]
     total_time = 0
 
+    params = count_params()
+
     for wav_file in tqdm(files):
         vid = wav_file.split('.')[0]
         
@@ -79,7 +93,7 @@ def main():
     print(f'- Average latency: {total_time / len(files)}')
       
     with open('latency.txt', 'a') as f:
-      f.write(f'{len(files)}\t{total_time}\t{total_time / len(files)}\n')
+      f.write(f'{params}\t{len(files)}\t{total_time}\t{total_time / len(files)}\n')
 
 if __name__ == '__main__':
   main()
